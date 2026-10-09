@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catatan Kuliah</title>
+<style>
+  :root {
+    --navy: #14284b;
+    --blue: #2f5fd0;
+    --blue-soft: #eaf0fc;
+    --line: #e3e8f0;
+    --text: #1c2433;
+    --muted: #667085;
+    --danger: #c0392b;
+    --bg: #ffffff;
+    --bg-alt: #f6f8fc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg-alt);
+    line-height: 1.5;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { margin-bottom: 24px; }
+  h1 { margin: 0; font-size: 1.9rem; color: var(--navy); letter-spacing: -0.02em; }
+  .tagline { margin: 4px 0 0; color: var(--muted); }
+
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+
+  .btn {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--blue-soft); }
+  .btn-primary { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 600; }
+  .btn-primary:hover { background: #0e1d38; }
+  .btn-danger { color: var(--danger); }
+  .btn-danger:hover { background: #fdecea; }
+
+  #toggleForm { width: 100%; padding: 12px; font-size: 1rem; }
+
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  #formCard { margin-top: 12px; }
+  #formCard[hidden] { display: none; }
+  .form-title { margin: 0 0 12px; font-size: 1.05rem; color: var(--navy); }
+  .field { margin-bottom: 12px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; margin-bottom: 4px; font-size: 0.9rem; font-weight: 600; color: var(--navy); }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  .form-actions { display: flex; gap: 8px; }
+
+  .toolbar { display: grid; grid-template-columns: 1fr 190px; gap: 8px; margin: 16px 0 24px; }
+
+  h2 { margin: 0 0 12px; font-size: 1.1rem; color: var(--navy); }
+
+  .note { margin-bottom: 12px; }
+  .note-date { color: var(--muted); font-size: 0.88rem; }
+  .note-title { margin: 2px 0 6px; font-size: 1.1rem; color: var(--navy); overflow-wrap: anywhere; }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--blue-soft);
+    color: var(--blue);
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  .note-desc { margin: 10px 0 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .note-actions { display: flex; gap: 8px; }
+  .note-actions .btn { padding: 6px 12px; font-size: 0.9rem; }
+
+  .empty { text-align: center; color: var(--muted); padding: 32px 16px; }
+
+  @media (max-width: 520px) {
+    .row, .toolbar { grid-template-columns: 1fr; }
+    h1 { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Catatan Kuliah</h1>
+    <p class="tagline">Dokumentasikan kegiatanmu selama kuliah.</p>
+  </header>
+
+  <button class="btn btn-primary" id="toggleForm" type="button">+ Tambah Catatan</button>
+
+  <section class="card" id="formCard" hidden>
+    <h2 class="form-title" id="formTitle">Tambah Catatan</h2>
+    <div class="row">
+      <div class="field">
+        <label for="fDate">Tanggal</label>
+        <input type="date" id="fDate">
+      </div>
+      <div class="field">
+        <label for="fCategory">Kategori</label>
+        <select id="fCategory"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="fTitle">Judul kegiatan</label>
+      <input type="text" id="fTitle" maxlength="120" placeholder="Contoh: Mengikuti seminar kewirausahaan">
+    </div>
+    <div class="field">
+      <label for="fDesc">Deskripsi singkat</label>
+      <textarea id="fDesc" placeholder="Apa yang kamu lakukan atau pelajari?"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="saveBtn" type="button">Simpan Catatan</button>
+      <button class="btn" id="cancelBtn" type="button">Batal</button>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="🔍 Cari catatan..." aria-label="Cari catatan">
+    <select id="filter" aria-label="Filter kategori"></select>
+  </div>
+
+  <h2>Daftar Catatan</h2>
+  <div id="list"></div>
+</div>
+
+<script>
+  var STORAGE_KEY = "catatan-kuliah-v1";
+  var CATEGORIES = ["Kuliah", "Tugas", "Organisasi", "Lomba", "Magang", "Belajar", "Lainnya"];
+  var MONTHS = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+  var notes = load();
+  var editingId = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var formCard = $("formCard"), formTitle = $("formTitle");
+  var fDate = $("fDate"), fTitle = $("fTitle"), fCategory = $("fCategory"), fDesc = $("fDesc");
+  var searchEl = $("search"), filterEl = $("filter"), listEl = $("list");
+
+  /* ---------- Penyimpanan ---------- */
+  function load() {
+    try {
+      var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      return Array.isArray(data) ? data : [];
+    } catch (e) { return []; }
+  }
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(notes)); }
+    catch (e) { alert("Data tidak bisa disimpan. Pastikan penyimpanan browser tidak diblokir."); }
+  }
+
+  /* ---------- Util ---------- */
+  function todayStr() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+  function formatDate(s) {
+    var p = String(s).split("-");
+    if (p.length !== 3) return s;
+    return parseInt(p[2], 10) + " " + MONTHS[parseInt(p[1], 10) - 1] + " " + p[0];
+  }
+
+  /* ---------- Form ---------- */
+  function fillSelects() {
+    CATEGORIES.forEach(function (c) {
+      var o = document.createElement("option");
+      o.value = c; o.textContent = c;
+      fCategory.appendChild(o);
+    });
+    var all = document.createElement("option");
+    all.value = ""; all.textContent = "Semua Kategori";
+    filterEl.appendChild(all);
+    CATEGORIES.forEach(function (c) {
+      var o = document.createElement("option");
+      o.value = c; o.textContent = c;
+      filterEl.appendChild(o);
+    });
+  }
+
+  function openForm(note) {
+    editingId = note ? note.id : null;
+    formTitle.textContent = note ? "Edit Catatan" : "Tambah Catatan";
+    fDate.value = note ? note.date : todayStr();
+    fTitle.value = note ? note.title : "";
+    fCategory.value = note ? note.category : CATEGORIES[0];
+    fDesc.value = note ? note.description : "";
+    formCard.hidden = false;
+    formCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    fTitle.focus();
+  }
+  function closeForm() {
+    formCard.hidden = true;
+    editingId = null;
+  }
+
+  function saveNote() {
+    var date = fDate.value;
+    var title = fTitle.value.trim();
+    if (!date) { alert("Tanggal wajib diisi."); fDate.focus(); return; }
+    if (!title) { alert("Judul kegiatan wajib diisi."); fTitle.focus(); return; }
+
+    var data = {
+      date: date,
+      title: title,
+      category: fCategory.value,
+      description: fDesc.value.trim()
+    };
+
+    if (editingId) {
+      notes = notes.map(function (n) {
+        return n.id === editingId ? Object.assign({}, n, data) : n;
+      });
+    } else {
+      data.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      data.createdAt = Date.now();
+      notes.push(data);
+    }
+    save();
+    closeForm();
+    render();
+  }
+
+  function deleteNote(id) {
+    if (!confirm("Hapus catatan ini?")) return;
+    notes = notes.filter(function (n) { return n.id !== id; });
+    save();
+    if (editingId === id) closeForm();
+    render();
+  }
+
+  /* ---------- Tampilan daftar ---------- */
+  function render() {
+    var q = searchEl.value.trim().toLowerCase();
+    var cat = filterEl.value;
+
+    var shown = notes.filter(function (n) {
+      var matchCat = !cat || n.category === cat;
+      var matchText = !q ||
+        n.title.toLowerCase().indexOf(q) !== -1 ||
+        (n.description || "").toLowerCase().indexOf(q) !== -1;
+      return matchCat && matchText;
+    }).sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+
+    listEl.innerHTML = "";
+
+    if (shown.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "card empty";
+      empty.textContent = notes.length === 0
+        ? "Belum ada catatan. Klik “+ Tambah Catatan” untuk mulai."
+        : "Tidak ada catatan yang cocok.";
+      listEl.appendChild(empty);
+      return;
+    }
+
+    shown.forEach(function (n) {
+      var card = document.createElement("article");
+      card.className = "card note";
+
+      var date = document.createElement("div");
+      date.className = "note-date";
+      date.textContent = "📅 " + formatDate(n.date);
+
+      var title = document.createElement("h3");
+      title.className = "note-title";
+      title.textContent = n.title;
+
+      var badge = document.createElement("span");
+      badge.className = "badge";
+      badge.textContent = n.category;
+
+      card.appendChild(date);
+      card.appendChild(title);
+      card.appendChild(badge);
+
+      if (n.description) {
+        var desc = document.createElement("p");
+        desc.className = "note-desc";
+        desc.textContent = n.description;
+        card.appendChild(desc);
+      } else {
+        badge.style.marginBottom = "14px";
+      }
+
+      var actions = document.createElement("div");
+      actions.className = "note-actions";
+      if (!n.description) actions.style.marginTop = "14px";
+
+      var edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "btn";
+      edit.textContent = "Edit";
+      edit.addEventListener("click", function () { openForm(n); });
+
+      var del = document.createElement("button");
+      del.type = "button";
+      del.className = "btn btn-danger";
+      del.textContent = "Hapus";
+      del.addEventListener("click", function () { deleteNote(n.id); });
+
+      actions.appendChild(edit);
+      actions.appendChild(del);
+      card.appendChild(actions);
+      listEl.appendChild(card);
+    });
+  }
+
+  /* ---------- Event ---------- */
+  $("toggleForm").addEventListener("click", function () {
+    if (!formCard.hidden && editingId === null) closeForm();
+    else openForm(null);
+  });
+  $("saveBtn").addEventListener("click", saveNote);
+  $("cancelBtn").addEventListener("click", closeForm);
+  searchEl.addEventListener("input", render);
+  filterEl.addEventListener("change", render);
+  fTitle.addEventListener("keydown", function (e) { if (e.key === "Enter") saveNote(); });
+
+  fillSelects();
+  render();
+</script>
+</body>
+</html>
